@@ -1,3 +1,4 @@
+from sklearn.preprocessing import LabelEncoder
 from sklearn.exceptions import DataConversionWarning
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
@@ -12,6 +13,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import warnings
+import xgboost as xgb
 df = pd.read_csv('city_day.csv')
 df.head()
 
@@ -46,31 +48,6 @@ df['AQI_Bucket'].fillna(df['AQI'].apply(map_aqi_to_bucket), inplace=True)
 missing_percentage_after = df.isnull().sum() * 100 / len(df)
 print('Missing Percentage After Cleaning:', missing_percentage_after)
 
-fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-sns.histplot(df['PM2.5'], kde=True, ax=axes[0, 0])
-axes[0, 0].set_title('PM2.5 Distribution')
-sns.histplot(df['PM10'], kde=True, ax=axes[0, 1])
-axes[0, 1].set_title('PM10 Distribution')
-sns.histplot(df['NO2'], kde=True, ax=axes[1, 0])
-axes[1, 0].set_title('NO2 Distribution')
-sns.histplot(df['CO'], kde=True, ax=axes[1, 1])
-axes[1, 1].set_title('CO Distribution')
-plt.tight_layout()
-plt.show()
-
-correlation_matrix = df[['PM2.5', 'PM10', 'NO2', 'CO']].corr()
-sns.heatmap(correlation_matrix, annot=True)
-plt.show()
-
-sns.boxplot(data=df[['PM2.5', 'PM10', 'NO2', 'CO']])
-plt.show()
-
-sns.countplot(data=df, x='AQI_Bucket')
-plt.show()
-
-# Create a heatmap to visualize the correlation between features and 'AQI_Bucket'
-sns.heatmap(df.corr(numeric_only=True), annot=True, cmap='coolwarm')
-
 # Function for calculating feature importances
 def feature_importance(X_train, y_train):
     # Initialize the model
@@ -90,9 +67,14 @@ def feature_importance(X_train, y_train):
 X = df[['PM2.5', 'PM10', 'NO2', 'CO']]
 y = df['AQI_Bucket']
 
+label_encoder = LabelEncoder()
+y_encoded = label_encoder.fit_transform(y)
+
+
 # Data Splitting
-X_temp, X_test, y_temp, y_test = train_test_split(X, y, test_size=0.2, random_state=42)  # Splitting off the test set
-X_train, X_val, y_train, y_val = train_test_split(X_temp, y_temp, test_size=0.25, random_state=42)  # Splitting the remaining data into training and validation sets
+X_temp, X_test, y_temp_encoded, y_test_encoded = train_test_split(X, y_encoded, test_size=0.2, random_state=42)
+X_train, X_val, y_train_encoded, y_val_encoded = train_test_split(X_temp, y_temp_encoded, test_size=0.25, random_state=42)
+ 
 # Reduce the DataFrame to a smaller subset for faster execution
 df_sample = df.sample(frac=0.1, random_state=42)
 
@@ -167,3 +149,21 @@ accuracy = accuracy_score(y_test_sample, y_pred)
 print(f"Accuracy after optimization: {accuracy}")
 # Evaluate the optimized RFC on validation and test sets
 evaluate_model(optimized_rf, X_val, y_val, X_test, y_test)
+
+# Print a separator for clarity
+print("-" * 50)
+print("XGBoost Classifier Results:")
+
+# Initialize the XGBoost classifier
+xgb_classifier = xgb.XGBClassifier(use_label_encoder=False, eval_metric="mlogloss", random_state=42)
+
+# Fit the model to the training data
+xgb_classifier.fit(X_train, y_train_encoded)
+
+# Decoding the predictions for evaluation
+y_pred_val = label_encoder.inverse_transform(xgb_classifier.predict(X_val))
+y_pred_test = label_encoder.inverse_transform(xgb_classifier.predict(X_test))
+print("Validation Results:")
+print(classification_report(y_val, y_pred_val, zero_division=1))
+print("Test Results:")
+print(classification_report(y_test, y_pred_test, zero_division=1))
