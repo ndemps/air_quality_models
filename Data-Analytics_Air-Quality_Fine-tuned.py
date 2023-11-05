@@ -71,19 +71,22 @@ label_encoder = LabelEncoder()
 y_encoded = label_encoder.fit_transform(y)
 
 
-# Data Splitting
-X_temp, X_test, y_temp_encoded, y_test_encoded = train_test_split(X, y_encoded, test_size=0.2, random_state=42)
-X_train, X_val, y_train_encoded, y_val_encoded = train_test_split(X_temp, y_temp_encoded, test_size=0.25, random_state=42)
- 
-# Reduce the DataFrame to a smaller subset for faster execution
-df_sample = df.sample(frac=0.1, random_state=42)
+# Data Splitting with stratification
+X_temp, X_test, y_temp_encoded, y_test_encoded = train_test_split(X, y_encoded, test_size=0.2, random_state=42, stratify=y_encoded)
+X_train, X_val, y_train_encoded, y_val_encoded = train_test_split(X_temp, y_temp_encoded, test_size=0.25, random_state=42, stratify=y_temp_encoded)
+
+# Use train_test_split to perform stratified sampling
+_, df_sample = train_test_split(df, test_size=0.1, random_state=42, stratify=df['AQI_Bucket'])
+
+
 
 # Create features and target from the sample
 X_sample = df_sample[['PM2.5', 'PM10', 'NO2', 'CO']]
 y_sample = df_sample['AQI_Bucket']
 
-# Split the sampled data
-X_train_sample, X_test_sample, y_train_sample, y_test_sample = train_test_split(X_sample, y_sample, test_size=0.2, random_state=42)
+# Split the sampled data with stratification
+X_train_sample, X_test_sample, y_train_sample, y_test_sample = train_test_split(
+    X_sample, y_sample, test_size=0.2, random_state=42, stratify=y_sample)
 
 # Define the reduced hyperparameter grid for RandomForestClassifier
 rf_param_grid = {
