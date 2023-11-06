@@ -3,7 +3,7 @@
 This repository focuses on analyzing air quality data to predict the Air Quality Index (AQI) bucket based on various air pollutant levels. The primary objective is to understand the significance of different pollutants in determining air quality and to build predictive models that can accurately classify the AQI bucket.
 
 ## Dataset
-The dataset used is named [`city_day.csv`](https://github.com/ndemps/air_quality_models/blob/main/Data/city_day.csv), which contains daily air quality data, including levels of various pollutants and the corresponding AQI values.
+The dataset used is named [city_day.csv](https://github.com/ndemps/air_quality_models/blob/main/Data/city_day.csv), which contains daily air quality data, including levels of various pollutants and the corresponding AQI values.
 
 ## Key Features:
 1. **Data Preprocessing**: Comprehensive data cleaning, including handling missing values and median imputation for numerical columns.
